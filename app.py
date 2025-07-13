@@ -1,69 +1,40 @@
+from flask import Flask, request from linebot import LineBotApi, WebhookHandler from linebot.models import MessageEvent, TextMessage, TextSendMessage from linebot.exceptions import InvalidSignatureError import os, json, re
 
-from flask import Flask, request, jsonify
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import os, json, re
+app = Flask(name)
 
-app = Flask(__name__)
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN") LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET") line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN) handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
+預設年份與里程數
 
-# Load car price data
-def load_data():
-    try:
-        with open("data.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
+car_defaults = { 'gt43': {'brand': 'Benz', 'model': 'GT43', 'year': '2020', 'mileage': '30000'}, 'gla45': {'brand': 'Benz', 'model': 'GLA45', 'year': '2015', 'mileage': '80000'}, 's400 coupe': {'brand': 'Benz', 'model': 'S400 Coupe', 'year': '2016', 'mileage': '90000'}, 'panamera diesel': {'brand': 'Porsche', 'model': 'Panamera Diesel', 'year': '2018', 'mileage': '60000'}, 'california': {'brand': 'Ferrari', 'model': 'California', 'year': '2011', 'mileage': '50000'}, 'a8l': {'brand': 'Audi', 'model': 'A8L 4.2', 'year': '2020', 'mileage': '78000'}, 'x5': {'brand': 'BMW', 'model': 'X5', 'year': '2021', 'mileage': '30000'} }
 
-def format_response(car, matches):
-    response = f"📍 {car['year']} {car['brand']} {car['model']}\n"
-    response += f"🛣️ 里程：{car.get('mileage', '未知')}\n"
-    response += f"🎨 顏色：{car.get('color', '未知')}\n"
-    response += "📊 市價參考：\n"
-    if 'yahoo' in matches:
-        response += f"- Yahoo：{matches['yahoo']['avg']}萬（{matches['yahoo']['count']}筆）\n"
-    if '8891' in matches:
-        response += f"- 8891：{matches['8891']['avg']}萬（{matches['8891']['count']}筆）\n"
-    if 'authority' in matches:
-        response += f"- 權威車訊：{matches['authority']}萬\n"
-    response += f"💰 估計收購價：{car.get('estimate_price', '估價中')} 萬\n"
-    response += f"🏦 可貸款金額：{matches.get('authority', '書價未知')} 萬（依書價）"
-    return response
+@app.route("/webhook", methods=['POST']) def webhook(): signature = request.headers['X-Line-Signature'] body = request.get_data(as_text=True) try: handler.handle(body, signature) except InvalidSignatureError: return 'Invalid signature', 400 return 'OK'
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    signature = request.headers["X-Line-Signature"]
-    body = request.get_data(as_text=True)
-    handler.handle(body, signature)
-    return "OK"
+@handler.add(MessageEvent, message=TextMessage) def handle_message(event): msg = event.message.text.lower() reply = ""
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-    msg = event.message.text.lower()
-    data = load_data()
+# 嘗試抓關鍵車型
+matched = None
+for key in car_defaults:
+    if key in msg:
+        matched = car_defaults[key]
+        break
 
-    matched = None
-    for car in data:
-        key = f"{car['year']} {car['brand']} {car['model']}".lower()
-        if all(x in key for x in msg.split()):
-            matched = car
-            break
+if not matched:
+    reply = "❗ 無法解析車型，請輸入例如：2020 GT43 或 Benz GLA45"
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+    return
 
-    if matched:
-        response = format_response(matched, matched.get("sources", {}))
-    else:
-        response = "查無相關資料，請再確認車款或輸入格式。"
+brand = matched['brand']
+model = matched['model']
+year = matched['year']
+mileage = matched['mileage']
 
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+# 回覆格式（暫以假資料模擬）
+reply = f"""
 
-@app.route("/update", methods=["GET"])
-def update_data():
-    # Dummy endpoint to trigger manual update (to be implemented)
-    return jsonify({"status": "update triggered"})
+📍 {year} {brand} {model} 🛣️ 里程：{int(mileage) // 10000}萬公里 🎨 顏色：灰色（預設） 📊 市價參考：\n- Yahoo：170萬（3筆）\n- 8891：165萬（2筆）\n- 權威車訊：150萬 💰 估計收購價：135 萬左右 🏦 可貸款金額：150 萬（依書價）"""
 
-if __name__ == "__main__":
-    app.run(debug=True)
+line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+
+if name == "main": app.run()
+
