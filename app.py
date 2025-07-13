@@ -1,39 +1,90 @@
-from flask import Flask, request from linebot import LineBotApi, WebhookHandler from linebot.models import MessageEvent, TextMessage, TextSendMessage from linebot.exceptions import InvalidSignatureError import os import json import re
+from flask import Flask, request, abort
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.exceptions import InvalidSignatureError
+import os
+import json
+import re
 
-app = Flask(name)
+app = Flask(__name__)
 
-讀取環境變數中的 LINE Token 和 Secret
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN") LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+# 預設年份與里程數（部分範例）
+car_defaults = {
+    'gt43': {'brand': 'benz', 'year': 2020, 'mileage': 30000},
+    'panamera diesel': {'brand': 'porsche', 'year': 2018, 'mileage': 60000},
+    's400 coupe': {'brand': 'benz', 'year': 2015, 'mileage': 90000},
+    'gla45': {'brand': 'benz', 'year': 2015, 'mileage': 80000},
+}
 
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN) handler = WebhookHandler(LINE_CHANNEL_SECRET)
+def load_data():
+    try:
+        with open('data.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return []
 
-預設年份與里程數（部分範例）
+def estimate_price(brand, model, year, mileage):
+    data = load_data()
+    matches = [d for d in data if brand in d['品牌'].lower() and model in d['車型'].lower()]
+    if not matches:
+        return None
 
-car_defaults = { 'gt43': {'brand': 'benz', 'model': 'gt43', 'year': 2020, 'mileage': 30000}, 'california': {'brand': 'ferrari', 'model': 'california', 'year': 2011, 'mileage': 40000}, # 可依需求擴充 }
+    prices = [int(d['價格']) for d in matches if d['價格'].isdigit()]
+    if not prices:
+        return None
 
-@app.route("/webhook", methods=['POST']) def webhook(): signature = request.headers['X-Line-Signature'] body = request.get_data(as_text=True) try: handler.handle(body, signature) except InvalidSignatureError: return 'Invalid signature', 400 return 'OK'
+    avg_price = sum(prices) // len(prices)
+    buy_price = int(avg_price * 0.85)
+    source_info = f"市價平均：{avg_price} 萬（{len(prices)} 筆）"
+    return avg_price, buy_price, source_info
 
-@handler.add(MessageEvent, message=TextMessage) def handle_message(event): user_msg = event.message.text.lower()
+@app.route("/webhook", methods=['POST'])
+def webhook():
+    signature = request.headers['X-Line-Signature']
+    body = request.get_data(as_text=True)
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+    return 'OK'
 
-# 範例：模糊查詢回傳預設估價
-for key in car_defaults:
-    if key in user_msg:
-        info = car_defaults[key]
-        reply = f"📍 預估車款：{info['year']} {info['brand'].upper()} {info['model'].upper()}\n"
-        reply += f"🛣️ 預設里程：{info['mileage']} 公里\n"
-        reply += "📊 系統將自動查詢市價並估算收購價..."
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply)
-        )
-        return
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    msg = event.message.text.strip().lower()
+    response = ""
+    found = False
 
-# 預設回覆
-line_bot_api.reply_message(
-    event.reply_token,
-    TextSendMessage(text="請輸入車款或年份，例如：2020 GT43 或 California")
-)
+    for keyword, default in car_defaults.items():
+        if keyword in msg:
+            brand = default['brand']
+            model = keyword
+            year = default['year']
+            mileage = default['mileage']
+            result = estimate_price(brand, model, year, mileage)
+            if result:
+                avg, buy, info = result
+                response = f"""📍 {year} {brand.upper()} {model.upper()}
+🛣️ 里程：約 {mileage//10000} 萬公里
+📊 {info}
+💰 估計收購價：{buy} 萬左右
+🏦 可貸款金額：{avg} 萬（依書價）"""
+            else:
+                response = f"查無 {model.upper()} 市價資料，請稍後再試或補充更多關鍵字。"
+            found = True
+            break
 
-if name == "main": app.run()
+    if not found:
+        response = "請輸入車型（如 GT43、Gla45、S400 Coupe），我來幫你估價。"
 
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=response)
+    )
+
+if __name__ == "__main__":
+    app.run()
