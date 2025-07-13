@@ -1,18 +1,19 @@
 from flask import Flask, request, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+import os
 import json
 import re
 
 app = Flask(__name__)
 
-# 請自行設定環境變數或硬寫入
-LINE_CHANNEL_SECRET = '你的 LINE SECRET'
-LINE_CHANNEL_ACCESS_TOKEN = '你的 LINE TOKEN'
+# ✅ 改為使用環境變數方式，避免硬編碼
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# 載入車價資料
+# 載入車價資料與車型對照
 with open("data.json", "r", encoding="utf-8") as f:
     car_data = json.load(f)
 
@@ -54,9 +55,12 @@ def estimate_price(brand, model, year, mileage, color):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    signature = request.headers["X-Line-Signature"]
+    signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
-    handler.handle(body, signature)
+    try:
+        handler.handle(body, signature)
+    except Exception as e:
+        print("LINE webhook error:", e)
     return "OK"
 
 @handler.add(MessageEvent, message=TextMessage)
