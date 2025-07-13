@@ -3,61 +3,53 @@
     "brand": "Toyota",
     "model": "Altis"
   },
+  "corolla": {
+    "brand": "Toyota",
+    "model": "Altis"
+  },
   "camry": {
     "brand": "Toyota",
     "model": "Camry"
-  },
-  "rav4": {
-    "brand": "Toyota",
-    "model": "RAV4"
   },
   "yaris": {
     "brand": "Toyota",
     "model": "Yaris"
   },
-  "corolla cross": {
+  "rav4": {
     "brand": "Toyota",
-    "model": "Corolla Cross"
-  },
-  "prius": {
-    "brand": "Toyota",
-    "model": "Prius"
-  },
-  "sienta": {
-    "brand": "Toyota",
-    "model": "Sienta"
+    "model": "RAV4"
   },
   "vios": {
     "brand": "Toyota",
     "model": "Vios"
   },
-  "wish": {
-    "brand": "Toyota",
-    "model": "Wish"
+  "crv": {
+    "brand": "Honda",
+    "model": "CR-V"
+  },
+  "cr-v": {
+    "brand": "Honda",
+    "model": "CR-V"
   },
   "fit": {
     "brand": "Honda",
     "model": "Fit"
   },
-  "crv": {
-    "brand": "Honda",
-    "model": "CR-V"
-  },
   "hrv": {
     "brand": "Honda",
     "model": "HR-V"
   },
-  "civic": {
+  "hr-v": {
     "brand": "Honda",
-    "model": "Civic"
+    "model": "HR-V"
   },
   "accord": {
     "brand": "Honda",
     "model": "Accord"
   },
-  "odyssey": {
+  "civic": {
     "brand": "Honda",
-    "model": "Odyssey"
+    "model": "Civic"
   },
   "march": {
     "brand": "Nissan",
@@ -71,19 +63,19 @@
     "brand": "Nissan",
     "model": "Tiida"
   },
-  "xtrail": {
+  "kicks": {
     "brand": "Nissan",
-    "model": "X-Trail"
+    "model": "Kicks"
   },
-  "teana": {
+  "livina": {
     "brand": "Nissan",
-    "model": "Teana"
-  },
-  "juke": {
-    "brand": "Nissan",
-    "model": "Juke"
+    "model": "Livina"
   },
   "mazda3": {
+    "brand": "Mazda",
+    "model": "Mazda3"
+  },
+  "mazda 3": {
     "brand": "Mazda",
     "model": "Mazda3"
   },
@@ -95,9 +87,25 @@
     "brand": "Mazda",
     "model": "CX-5"
   },
-  "cx9": {
+  "cx-5": {
     "brand": "Mazda",
-    "model": "CX-9"
+    "model": "CX-5"
+  },
+  "cx30": {
+    "brand": "Mazda",
+    "model": "CX-30"
+  },
+  "outlander": {
+    "brand": "Mitsubishi",
+    "model": "Outlander"
+  },
+  "colt plus": {
+    "brand": "Mitsubishi",
+    "model": "Colt Plus"
+  },
+  "zinger": {
+    "brand": "Mitsubishi",
+    "model": "Zinger"
   },
   "focus": {
     "brand": "Ford",
@@ -115,120 +123,124 @@
     "brand": "Ford",
     "model": "Fiesta"
   },
-  "mustang": {
-    "brand": "Ford",
-    "model": "Mustang"
-  },
-  "lancer": {
-    "brand": "Mitsubishi",
-    "model": "Lancer"
-  },
-  "outlander": {
-    "brand": "Mitsubishi",
-    "model": "Outlander"
-  },
-  "colt plus": {
-    "brand": "Mitsubishi",
-    "model": "Colt Plus"
-  },
-  "triton": {
-    "brand": "Mitsubishi",
-    "model": "Triton"
-  },
-  "audi a4": {
-    "brand": "Audi",
-    "model": "A4"
-  },
-  "audi a6": {
-    "brand": "Audi",
-    "model": "A6"
-  },
-  "audi a8": {
-    "brand": "Audi",
-    "model": "A8L 4.2"
-  },
-  "audi q5": {
-    "brand": "Audi",
-    "model": "Q5"
-  },
-  "audi q7": {
-    "brand": "Audi",
-    "model": "Q7"
-  },
-  "benz e300": {
+  "gt43": {
     "brand": "Mercedes-Benz",
-    "model": "E300"
+    "model": "GT43"
   },
-  "benz gt43": {
+  "gla45": {
     "brand": "Mercedes-Benz",
-    "model": "AMG GT43"
+    "model": "GLA45"
   },
-  "benz cla45": {
+  "glc43": {
+    "brand": "Mercedes-Benz",
+    "model": "GLC43 Coupe"
+  },
+  "cla45": {
     "brand": "Mercedes-Benz",
     "model": "CLA45s"
   },
-  "benz cls350": {
+  "cle200": {
+    "brand": "Mercedes-Benz",
+    "model": "CLE200"
+  },
+  "cls350": {
     "brand": "Mercedes-Benz",
     "model": "CLS350"
   },
-  "benz glb180": {
-    "brand": "Mercedes-Benz",
-    "model": "GLB180"
-  },
-  "benz s400": {
+  "s400": {
     "brand": "Mercedes-Benz",
     "model": "S400h"
   },
-  "bmw 320i": {
-    "brand": "BMW",
-    "model": "320i"
+  "s350": {
+    "brand": "Mercedes-Benz",
+    "model": "S350d"
   },
-  "bmw 520i": {
-    "brand": "BMW",
-    "model": "520i"
+  "gl350": {
+    "brand": "Mercedes-Benz",
+    "model": "GL350d"
   },
-  "bmw 740li": {
+  "e300": {
+    "brand": "Mercedes-Benz",
+    "model": "E300"
+  },
+  "740li": {
     "brand": "BMW",
     "model": "740Li"
   },
-  "bmw x5": {
+  "730d": {
+    "brand": "BMW",
+    "model": "730d"
+  },
+  "650i": {
+    "brand": "BMW",
+    "model": "650i"
+  },
+  "x5": {
     "brand": "BMW",
     "model": "X5"
   },
-  "bmw x6": {
+  "x6": {
     "brand": "BMW",
     "model": "X6"
   },
-  "porsche macan": {
-    "brand": "Porsche",
-    "model": "Macan"
+  "a8l": {
+    "brand": "Audi",
+    "model": "A8L 4.2"
   },
-  "porsche panamera": {
+  "panamera": {
     "brand": "Porsche",
     "model": "Panamera Diesel"
   },
-  "ferrari california": {
-    "brand": "Ferrari",
-    "model": "California"
+  "macan": {
+    "brand": "Porsche",
+    "model": "Macan"
   },
-  "rolls royce ghost": {
-    "brand": "Rolls-Royce",
-    "model": "Ghost"
-  },
-  "bentley continental": {
-    "brand": "Bentley",
-    "model": "Continental GT"
-  },
-  "bentley mulsanne": {
-    "brand": "Bentley",
-    "model": "Mulsanne"
-  },
-  "land rover defender": {
+  "defender": {
     "brand": "Land Rover",
     "model": "Defender"
   },
-  "land rover discovery": {
+  "discovery5": {
     "brand": "Land Rover",
     "model": "Discovery5"
+  },
+  "gts": {
+    "brand": "Maserati",
+    "model": "GTS"
+  },
+  "continental": {
+    "brand": "Bentley",
+    "model": "Continental GT"
+  },
+  "flying spur": {
+    "brand": "Bentley",
+    "model": "Flying Spur"
+  },
+  "gt speed": {
+    "brand": "Bentley",
+    "model": "GT Speed"
+  },
+  "mulsanne": {
+    "brand": "Bentley",
+    "model": "Mulsanne"
+  },
+  "ghost": {
+    "brand": "Rolls-Royce",
+    "model": "Ghost"
+  },
+  "california": {
+    "brand": "Ferrari",
+    "model": "California"
+  },
+  "golf": {
+    "brand": "Volkswagen",
+    "model": "Golf"
+  },
+  "tiguan": {
+    "brand": "Volkswagen",
+    "model": "Tiguan"
+  },
+  "passat": {
+    "brand": "Volkswagen",
+    "model": "Passat"
   }
 }
