@@ -1,63 +1,96 @@
-from flask import Flask, jsonify, request
-import json
-from datetime import datetime
+from flask import Flask, request
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+import os
+import re
 
 app = Flask(__name__)
 
-data_path = "data.json"
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN") or "你的 channel access token"
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET") or "你的 channel secret"
 
-def load_data():
-    try:
-        with open(data_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-def save_data(data):
-    with open(data_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
-    return "Car Price Crawler Backend OK"
+    return "LINE Auto Estimator Backend OK"
 
-@app.route("/data")
-def get_data():
-    return jsonify(load_data())
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    body = request.get_data(as_text=True)
+    signature = request.headers['X-Line-Signature']
 
-@app.route("/query")
-def query():
-    car = request.args.get("car", "").lower()
-    all_data = load_data()
-    filtered = [d for d in all_data if car in d.get("model", "").lower()]
-    return jsonify(filtered)
+    try:
+        handler.handle(body, signature)
+    except Exception as e:
+        print("Error:", e)
 
-@app.route("/update/yahoo")
-def update_yahoo():
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    dummy = {"source": "yahoo", "model": "GT43", "brand": "Benz", "year": 2020, "color": "黑", "price": 348, "posted": now}
-    current = load_data()
-    current.append(dummy)
-    save_data(current)
-    return jsonify({"status": "Yahoo updated", "total": len(current)})
+    return "OK", 200
 
-@app.route("/update/8891")
-def update_8891():
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    dummy = {"source": "8891", "model": "740Li", "brand": "BMW", "year": 2020, "color": "白", "price": 258, "posted": now}
-    current = load_data()
-    current.append(dummy)
-    save_data(current)
-    return jsonify({"status": "8891 updated", "total": len(current)})
+def parse_message(text):
+    text = text.strip()
+    result = {
+        "action": None,
+        "year": None,
+        "model": None,
+        "mileage": None,
+        "price": None,
+        "features": []
+    }
 
-@app.route("/update/autonet")
-def update_autonet():
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    dummy = {"source": "autonet", "model": "A8L", "brand": "Audi", "year": 2017, "color": "黑", "price": 138, "posted": now}
-    current = load_data()
-    current.append(dummy)
-    save_data(current)
-    return jsonify({"status": "Autonet updated", "total": len(current)})
+    if "更新" in text:
+        result["action"] = "update"
+    elif "查詢" in text or "估價" in text:
+        result["action"] = "estimate"
+    elif "買" in text:
+        result["action"] = "record"
+    else:
+        result["action"] = "parse"
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    year_match = re.search(r"(20\d{2}|19\d{2})", text)
+    if year_match:
+        result["year"] = year_match.group()
+
+    mileage_match = re.search(r"跑?(\d+(\.\d+)?)(萬)?", text)
+    if mileage_match:
+        num = float(mileage_match.group(1))
+        if mileage_match.group(3):  # 有 "萬"
+            num *= 10000
+        result["mileage"] = int(num)
+
+    price_match = re.search(r"買(\d+)(萬)?", text)
+    if price_match:
+        price = int(price_match.group(1))
+        if price_match.group(2):  # 有 "萬"
+            price *= 10000
+        result["price"] = price
+
+    tokens = text.split()
+    for token in tokens:
+        if result["model"] is None and token.upper() in text.upper():
+            result["model"] = token
+        elif token not in [result["year"], str(result["mileage"]), str(result["price"]), result["model"]]:
+            result["features"].append(token)
+
+    return result
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_message = event.message.text
+    parsed = parse_message(user_message)
+
+    reply = ""
+    if parsed["action"] == "update":
+        reply = "🔄 已觸發車價資料更新作業"
+    elif parsed["action"] == "estimate":
+        reply = f"📌 查詢車輛：{parsed['year']} {parsed['model']}（{parsed['mileage']}公里）\n📊 系統正在評估中，請稍後..."
+    elif parsed["action"] == "record":
+        reply = f"✅ 已記錄 {parsed['year']} {parsed['model']} 的實際收購價 {parsed['price']} 元"
+    else:
+        reply = f"📥 已解析：{parsed['year']} {parsed['model']}，里程 {parsed['mileage']}，配備：{'、'.join(parsed['features'])}"
+
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply)
+    )
