@@ -1,0 +1,33 @@
+name: Auto Update Car Price Data
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # 每天凌晨 2 點（UTC+0 是台灣早上 10 點）
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 下載 Repo 程式碼
+        uses: actions/checkout@v3
+
+      - name: 設定 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 執行自動爬蟲與更新
+        run: python auto_update.py
+
+      - name: 提交更新後的 data.json
+        run: |
+          git config user.name "Auto Update Bot"
+          git config user.email "bot@example.com"
+          git add data.json
+          git commit -m "每日自動更新車價資料"
+          git push
