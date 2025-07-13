@@ -1,19 +1,25 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import os
 import json
+import os
 import re
 
 app = Flask(__name__)
 
-# ✅ 改為使用環境變數方式，避免硬編碼
-LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+# 讀取環境變數
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET")
+
+# 檢查變數是否設定
+if not LINE_CHANNEL_SECRET or not LINE_CHANNEL_ACCESS_TOKEN:
+    raise ValueError("請先設定 LINE_CHANNEL_SECRET 與 LINE_CHANNEL_ACCESS_TOKEN")
+
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# 載入車價資料與車型對照
+# 載入資料
 with open("data.json", "r", encoding="utf-8") as f:
     car_data = json.load(f)
 
@@ -57,10 +63,11 @@ def estimate_price(brand, model, year, mileage, color):
 def webhook():
     signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
+
     try:
         handler.handle(body, signature)
-    except Exception as e:
-        print("LINE webhook error:", e)
+    except InvalidSignatureError:
+        abort(400, "Invalid signature")
     return "OK"
 
 @handler.add(MessageEvent, message=TextMessage)
