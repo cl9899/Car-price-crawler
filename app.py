@@ -1,4 +1,10 @@
-from flask import Flask, request from linebot import LineBotApi, WebhookHandler from linebot.models import MessageEvent, TextMessage, TextSendMessage from linebot.exceptions import InvalidSignatureError import os, json, re
+from flask import Flask, request
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.exceptions import InvalidSignatureError
+import os
+import json
+import re
 
 app = Flask(name)
 
