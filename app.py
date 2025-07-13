@@ -1,107 +1,86 @@
 from flask import Flask, request, jsonify
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import json
 import re
 
 app = Flask(__name__)
 
-# 讀取資料
+# 請自行設定環境變數或硬寫入
+LINE_CHANNEL_SECRET = '你的 LINE SECRET'
+LINE_CHANNEL_ACCESS_TOKEN = '你的 LINE TOKEN'
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
+
+# 載入車價資料
 with open("data.json", "r", encoding="utf-8") as f:
     car_data = json.load(f)
 
 with open("car_model_map.json", "r", encoding="utf-8") as f:
     model_map = json.load(f)
 
-# 簡易文字清洗與關鍵資訊擷取
-def parse_message(msg):
-    msg = msg.lower().replace("估價", "").strip()
+def parse_input(text):
+    year_match = re.search(r"(20\d{2}|19\d{2})", text)
+    mileage_match = re.search(r"(\d+(?:\.\d+)?)(萬|公里|km)?", text)
+    color_match = re.search(r"(白|黑|銀|灰|紅|藍|綠|紫|金|橘)", text)
 
-    year_match = re.search(r"(20\d{2}|19\d{2})", msg)
-    mileage_match = re.search(r"(\d{1,3})(萬|w)", msg)
-    color_match = re.search(r"(白|黑|灰|銀|藍|紅|綠|金|紫|黃)", msg)
+    year = int(year_match.group(1)) if year_match else None
+    mileage = float(mileage_match.group(1)) * 10000 if mileage_match and '萬' in text else None
+    color = color_match.group(1) if color_match else None
 
-    year = year_match.group() if year_match else None
-    mileage = mileage_match.group(1) + "萬" if mileage_match else None
-    color = color_match.group(0) if color_match else None
-
-    car_model = None
+    brand, model = None, None
     for keyword in model_map:
-        if keyword in msg:
-            car_model = model_map[keyword]
+        if keyword.lower() in text.lower():
+            brand, model = model_map[keyword]["brand"], model_map[keyword]["model"]
             break
+    return year, mileage, color, brand, model
+
+def estimate_price(brand, model, year, mileage, color):
+    results = [c for c in car_data if c["brand"] == brand and model.lower() in c["model"].lower()]
+    if year:
+        results = [c for c in results if abs(c["year"] - year) <= 1]
+
+    avg_price = sum([c["price"] for c in results]) / len(results) if results else 0
+    source_count = len(results)
+    estimated_price = round(avg_price * 0.85) if avg_price else 0
+    loan_price = round(avg_price) if avg_price else 0
 
     return {
-        "year": year,
-        "mileage": mileage,
-        "color": color,
-        "model": car_model
+        "avg_price": round(avg_price),
+        "estimated_price": estimated_price,
+        "loan_price": loan_price,
+        "count": source_count
     }
 
-# 估價邏輯
-def estimate_price(parsed):
-    model = parsed["model"]
-    if not model:
-        return {"error": "無法辨識車型，請重新輸入"}
-
-    matches = [c for c in car_data if model.lower() in c["車型"].lower()]
-    if parsed["year"]:
-        matches = [c for c in matches if parsed["year"] in c["年份"]]
-
-    if not matches:
-        return {"error": f"查無 {model} 市場資料"}
-
-    prices = [int(c["價格"]) for c in matches if c["價格"].isdigit()]
-    if not prices:
-        return {"error": "無有效價格資料"}
-
-    avg_price = int(sum(prices) / len(prices))
-    low_price = int(avg_price * 0.83)
-    high_price = int(avg_price * 0.87)
-
-    return {
-        "model": model,
-        "year": parsed.get("year"),
-        "mileage": parsed.get("mileage"),
-        "color": parsed.get("color"),
-        "source_count": len(prices),
-        "avg_price": avg_price,
-        "suggested_range": f"{low_price}–{high_price} 萬"
-    }
-
-# LINE Webhook
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    body = request.json
-    events = body.get("events", [])
-    responses = []
+    signature = request.headers["X-Line-Signature"]
+    body = request.get_data(as_text=True)
+    handler.handle(body, signature)
+    return "OK"
 
-    for event in events:
-        msg_type = event["message"]["type"]
-        if msg_type == "text":
-            text = event["message"]["text"]
-            parsed = parse_message(text)
-            result = estimate_price(parsed)
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    msg = event.message.text.strip()
+    year, mileage, color, brand, model = parse_input(msg)
 
-            if "error" in result:
-                reply = result["error"]
-            else:
-                reply = f"""📍 {result['year'] or ''} {result['model']}
-🛣️ 里程：{result['mileage'] or '預設12萬'}
-🎨 顏色：{result['color'] or '未提供'}
-📊 市場均價：{result['avg_price']} 萬（{result['source_count']} 筆）
-💰 收購預估：{result['suggested_range']}"""
+    if not model:
+        reply = "請輸入車型（如 GT43、Gla45、S400 Coupe），我來幫你估價。"
+    else:
+        price_info = estimate_price(brand, model, year, mileage, color)
+        reply = f"""📍 {year or '年份未知'} {brand} {model}
+🛣️ 里程：{int(mileage) if mileage else '不詳'} 公里
+🎨 顏色：{color or '不詳'}
+📊 市價參考：{price_info['avg_price']} 萬（共 {price_info['count']} 筆）
+💰 估計收購價：{price_info['estimated_price']} 萬左右
+🏦 可貸款金額：{price_info['loan_price']} 萬（依書價）
+"""
 
-            responses.append(reply)
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
-        elif msg_type == "image":
-            reply = "📷 已收到車輛照片，可補上年份與里程數進行估價。"
-            responses.append(reply)
-
-    return jsonify({"replies": responses})
-
-# 測試首頁
 @app.route("/", methods=["GET"])
 def index():
-    return "🚗 Car Price Estimation API is running."
+    return "LINE Bot 估價系統啟動中"
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=10000)
+    app.run()
