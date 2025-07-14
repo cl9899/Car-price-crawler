@@ -1,1 +1,38 @@
-[{ "brand": "Toyota", "model": "Altis", "year": 2016, "price": 45 }]
+[
+  {
+    "brand": "Toyota",
+    "model": "Altis",
+    "year": 2010,
+    "price": 23,
+    "color": "銀",
+    "source": "ABC",
+    "sold_at": "2025-07-05"
+  },
+  {
+    "brand": "Mercedes-Benz",
+    "model": "S400 Coupe",
+    "year": 2010,
+    "price": 88,
+    "color": "黑",
+    "source": "測試資料",
+    "sold_at": null
+  },
+  {
+    "brand": "Mercedes-Benz",
+    "model": "GLA45",
+    "year": 2015,
+    "price": 155,
+    "color": "灰",
+    "source": "測試資料",
+    "sold_at": null
+  },
+  {
+    "brand": "Land Rover",
+    "model": "Range Rover Sport Supercharged",
+    "year": 2015,
+    "price": 120,
+    "color": "白",
+    "source": "實際入手",
+    "sold_at": "2025-07-14"
+  }
+]
